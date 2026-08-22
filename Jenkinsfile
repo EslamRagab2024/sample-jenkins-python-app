@@ -30,8 +30,22 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                     script {
                         def fullImageName = "${DOCKER_USER}/${IMAGE_NAME}"
-                        echo "Testing Container output..."
-                        sh "docker run --rm ${fullImageName}:${IMAGE_TAG}"
+                        echo "Testing Container output via curl..."
+                        
+                        // 1. تنظيف أي حاوية اختبار قديمة مسجلة بنفس الاسم (تجنباً للتصادم)
+                        sh "docker rm -f pipeline-test-app || true"
+                        
+                        // 2. تشغيل الـ Container في الخلفية على بورت 8000
+                        sh "docker run -d -p 8000:8000 --name pipeline-test-app ${fullImageName}:${IMAGE_TAG}"
+                        
+                        // 3. انتظار ثانيتين للتأكد من استقرار السيرفر
+                        sleep 2
+                        
+                        // 4. اختبار الـ Web Server بطلب curl
+                        sh "curl -f http://localhost:8000"
+                        
+                        // 5. حذف حاوية الاختبار المؤقتة
+                        sh "docker rm -f pipeline-test-app"
                     }
                 }
             }
@@ -59,6 +73,7 @@ pipeline {
                 script {
                     def fullImageName = "${DOCKER_USER}/${IMAGE_NAME}"
                     echo 'Cleaning up local images and logging out...'
+                    sh "docker rm -f pipeline-test-app || true"
                     sh "docker rmi ${fullImageName}:${IMAGE_TAG} ${fullImageName}:latest || true"
                     sh 'docker logout'
                 }
