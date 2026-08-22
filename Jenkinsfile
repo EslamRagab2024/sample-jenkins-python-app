@@ -18,7 +18,7 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                     script {
                         def fullImageName = "${DOCKER_USER}/${IMAGE_NAME}"
-                        echo "Building Image: ${fullImageName}:${IMAGE_TAG}"
+                        echo "Building Docker Image version: ${IMAGE_TAG}..."
                         sh "docker build -t ${fullImageName}:${IMAGE_TAG} -t ${fullImageName}:latest ."
                     }
                 }
@@ -30,7 +30,7 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                     script {
                         def fullImageName = "${DOCKER_USER}/${IMAGE_NAME}"
-                        echo "Testing Image output..."
+                        echo "Testing Container output..."
                         sh "docker run --rm ${fullImageName}:${IMAGE_TAG}"
                     }
                 }
@@ -43,10 +43,8 @@ pipeline {
                     script {
                         def fullImageName = "${DOCKER_USER}/${IMAGE_NAME}"
 
-                        echo "Logging into Docker Hub..."
+                        echo "Logging into Docker Hub and Pushing Image..."
                         sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-
-                        echo "Pushing Images..."
                         sh "docker push ${fullImageName}:${IMAGE_TAG}"
                         sh "docker push ${fullImageName}:latest"
                     }
