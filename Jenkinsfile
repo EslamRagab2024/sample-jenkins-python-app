@@ -34,14 +34,25 @@ pipeline {
                         
                         sh "docker rm -f pipeline-test-app || true"
                         
-                        sh "docker run -d -p 8000:8000 --name pipeline-test-app ${fullImageName}:${IMAGE_TAG}"
+                        sh """
+                            docker run -d -p 8000:8000 --name pipeline-test-app \
+                            -e DB_HOST=localhost \
+                            -e DB_NAME=testdb \
+                            -e DB_USER=testuser \
+                            -e DB_PASSWORD=testpass \
+                            -e REDIS_HOST=localhost \
+                            ${fullImageName}:${IMAGE_TAG}
+                        """
                         
-                        sleep 2
+                        
                         
                         sh "curl -f http://localhost:8000"
-                        
-                        sh "docker rm -f pipeline-test-app"
                     }
+                }
+            }
+            post {
+                always {
+                    sh "docker rm -f pipeline-test-app || true"
                 }
             }
         }
