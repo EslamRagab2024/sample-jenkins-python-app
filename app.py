@@ -57,6 +57,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
                     <h1>🚀 App Status</h1>
                     <p>PostgreSQL: {pg_status}</p>
                     <p>Redis: {redis_status}</p>
+                    <p>App Status: PostgreSQL & Redis Connected! (Updated via CI/CD Pipeline</p>
                 </body>
             </html>
             """
