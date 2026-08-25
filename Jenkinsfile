@@ -6,7 +6,9 @@ pipeline {
         IMAGE_TAG  = "${BUILD_NUMBER}"
         INFRA_DIR  = '/home/islamragab/auto-config-management'
     }
-
+    triggers {
+        pollSCM('* * * * *')
+    }
     stages {
         stage('Checkout') {
             steps {
