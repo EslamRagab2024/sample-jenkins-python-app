@@ -4,6 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = 'python-hello-world'
         IMAGE_TAG  = "${BUILD_NUMBER}"
+        INFRA_DIR  = '/home/islamragab/auto-config-management'
     }
 
     stages {
@@ -30,11 +31,11 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                     script {
                         def fullImage = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
-                
+                        
                         sh 'docker rm -f pipeline-test-app || true'
-                
+                        
                         sh """
-                         docker run -d -p 8000:8000 --name pipeline-test-app \
+                        docker run -d -p 8000:8000 --name pipeline-test-app \
                         -e DB_HOST=127.0.0.1 \
                         -e DB_NAME=testdb \
                         -e DB_USER=testuser \
@@ -42,18 +43,13 @@ pipeline {
                         -e REDIS_HOST=127.0.0.1 \
                         ${fullImage}
                         """
-                
-                sleep 3
-                sh "curl -f http://localhost:8000"
+                        
+                        sleep 3
+                        sh "curl -f http://localhost:8000"
+                    }
+                }
             }
         }
-    }
-    post {
-        always {
-            sh "docker rm -f pipeline-test-app || true"
-        }
-    }
-}
 
         stage('Push to Docker Hub') {
             steps {
@@ -65,6 +61,18 @@ pipeline {
                         sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                         sh "docker push ${fullImageName}:${IMAGE_TAG}"
                         sh "docker push ${fullImageName}:latest"
+                    }
+                }
+            }
+        }
+
+        // --- Stage جديدة: تشغيل Ansible ونشر التحديث على EC2 ---
+        stage('Deploy via Ansible') {
+            steps {
+                script {
+                    echo "Triggering Ansible Deployment..."
+                    dir("${env.INFRA_DIR}") {
+                        sh "ansible-playbook -i ansible/inventory.ini ansible/deploy.yml"
                     }
                 }
             }
