@@ -68,14 +68,15 @@ pipeline {
         stage('Deploy via Ansible') {
             steps {
                 script {
-                    echo "Triggering Ansible Deployment..."
-                    dir("${env.INFRA_DIR}") {
-                        sh 'ansible-playbook -i ansible/inventory.ini ansible/deploy.yml'
-                    }
-                }
+                echo "Triggering Ansible Deployment..."
+                sh '''
+                cd /opt/auto-config-management
+                ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
+                '''
             }
         }
-    }
+     } 
+}
 
     post {
         always {
