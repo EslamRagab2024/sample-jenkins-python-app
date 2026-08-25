@@ -6,9 +6,11 @@ pipeline {
         IMAGE_TAG  = "${BUILD_NUMBER}"
         INFRA_DIR  = '/home/islamragab/auto-config-management'
     }
+
     triggers {
         pollSCM('* * * * *')
     }
+
     stages {
         stage('Checkout') {
             steps {
@@ -18,22 +20,14 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    // عمل tag مخصص بالرقم وبـ latest
-                    sh "docker build -t ${DOCKER_USER}/python-hello-world:${BUILD_NUMBER} -t ${DOCKER_USER}/python-hello-world:latest ."
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                    script {
+                        echo "Building Docker Image: ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+                        sh "docker build -t ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG} -t ${DOCKER_USER}/${IMAGE_NAME}:latest ."
+                    }
                 }
             }
         }
-
-stage('Push to Docker Hub') {
-    steps {
-        script {
-            sh "docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}"
-            sh "docker push ${DOCKER_USER}/python-hello-world:${BUILD_NUMBER}"
-            sh "docker push ${DOCKER_USER}/python-hello-world:latest"
-        }
-    }
-}
 
         stage('Test / Run Container') {
             steps {
@@ -75,7 +69,6 @@ stage('Push to Docker Hub') {
             }
         }
 
-        // --- Stage جديدة: تشغيل Ansible ونشر التحديث على EC2 ---
         stage('Deploy via Ansible') {
             steps {
                 script {
