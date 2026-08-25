@@ -18,47 +18,51 @@ class SimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         pg_status = "❌ Connection Failed"
         redis_status = "❌ Connection Failed"
-        visitor_count = 0
 
+        # 1. PostgreSQL Check
+        if db_host_only:
+            try:
+                conn = psycopg2.connect(
+                    host=db_host_only,
+                    port=db_port_only,
+                    database=DB_NAME,
+                    user=DB_USER,
+                    password=DB_PASSWORD,
+                    connect_timeout=2
+                )
+                pg_status = f"✅ Connected Successfully to '{DB_NAME}'!"
+                conn.close()
+            except Exception as e:
+                pg_status = f"❌ Failed: {str(e)}"
+
+        # 2. Redis Check
+        if REDIS_HOST:
+            try:
+                r = redis.Redis(host=REDIS_HOST, port=6379, socket_timeout=2)
+                r.incr('hits')
+                visitor_count = r.get('hits').decode('utf-8')
+                redis_status = f"✅ Connected Successfully! Visits: {visitor_count}"
+            except Exception as e:
+                redis_status = f"❌ Failed: {str(e)}"
+
+        # 3. Always Return 200 OK Response
         try:
-            conn = psycopg2.connect(
-                host=db_host_only,
-                port=db_port_only,
-                database=DB_NAME,
-                user=DB_USER,
-                password=DB_PASSWORD,
-                connect_timeout=3
-            )
-            pg_status = f"✅ Connected Successfully to Database '{DB_NAME}'!"
-            conn.close()
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html; charset=utf-8')
+            self.end_headers()
+            
+            html_response = f"""
+            <html>
+                <body>
+                    <h1>🚀 App Status</h1>
+                    <p>PostgreSQL: {pg_status}</p>
+                    <p>Redis: {redis_status}</p>
+                </body>
+            </html>
+            """
+            self.wfile.write(html_response.encode('utf-8'))
         except Exception as e:
-            pg_status = f"❌ Failed: {str(e)}"
-
-        try:
-            r = redis.Redis(host=REDIS_HOST, port=6379, socket_timeout=3)
-            r.incr('hits')
-            visitor_count = r.get('hits').decode('utf-8')
-            redis_status = f"✅ Connected Successfully! (Total Page Visits: {visitor_count})"
-        except Exception as e:
-            redis_status = f"❌ Failed: {str(e)}"
-
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html; charset=utf-8')
-        self.end_headers()
-        
-        html_response = f"""
-        <html>
-            <head><title>DevOps End-to-End Test</title></head>
-            <body style="font-family: Arial; text-align: center; padding-top: 50px;">
-                <h1>🚀 Hello World from Docker, Jenkins & AWS Infrastructure!</h1>
-                <hr style="width: 50%;">
-                <h3>Database Connections Status:</h3>
-                <p><strong>PostgreSQL RDS:</strong> {pg_status}</p>
-                <p><strong>Redis Cluster:</strong> {redis_status}</p>
-            </body>
-        </html>
-        """
-        self.wfile.write(html_response.encode('utf-8'))
+            print(f"Error handling request: {e}")
 
 if __name__ == '__main__':
     print("Server starting on port 8000...")
