@@ -18,15 +18,22 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                    script {
-                        def fullImageName = "${DOCKER_USER}/${IMAGE_NAME}"
-                        echo "Building Docker Image version: ${IMAGE_TAG}..."
-                        sh "docker build -t ${fullImageName}:${IMAGE_TAG} -t ${fullImageName}:latest ."
-                    }
+                script {
+                    // عمل tag مخصص بالرقم وبـ latest
+                    sh "docker build -t ${DOCKER_USER}/python-hello-world:${BUILD_NUMBER} -t ${DOCKER_USER}/python-hello-world:latest ."
                 }
             }
         }
+
+stage('Push to Docker Hub') {
+    steps {
+        script {
+            sh "docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}"
+            sh "docker push ${DOCKER_USER}/python-hello-world:${BUILD_NUMBER}"
+            sh "docker push ${DOCKER_USER}/python-hello-world:latest"
+        }
+    }
+}
 
         stage('Test / Run Container') {
             steps {
