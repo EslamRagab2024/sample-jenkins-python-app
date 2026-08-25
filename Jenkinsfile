@@ -66,16 +66,20 @@ pipeline {
         }
 
         stage('Deploy via Ansible') {
-            steps {
-                script {
-                echo "Triggering Ansible Deployment..."
+    steps {
+        script {
+            echo "Triggering Ansible Deployment..."
+            withCredentials([string(credentialsId: 'ansible-vault-pass', variable: 'VAULT_PASS')]) {
                 sh '''
-                cd /opt/auto-config-management
-                ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
+                    cd /opt/auto-config-management
+                    echo "$VAULT_PASS" > .vault_pass
+                    ansible-playbook -i ansible/inventory.ini ansible/deploy.yml --vault-password-file .vault_pass
+                    rm -f .vault_pass
                 '''
             }
         }
-     } 
+    }
+  }
 }
 
     post {
